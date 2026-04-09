@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pokopia Icon Generator</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background:#0d1117; color:#e6edf3;
+           display:flex; flex-direction:column; align-items:center; padding:40px 20px; gap:24px; }
+    h2   { font-size:20px; }
+    p    { font-size:14px; color:#8b949e; text-align:center; max-width:380px; }
+    canvas { border-radius:22%; border:1px solid #30363d; }
+    .row { display:flex; gap:24px; align-items:flex-end; flex-wrap:wrap; justify-content:center; }
+    .icon-box { display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .icon-box span { font-size:12px; color:#8b949e; }
+    button {
+      padding:12px 28px; background:#e63946; border:none; border-radius:10px;
+      color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+    button:hover { background:#c1121f; }
+  </style>
+</head>
+<body>
+
+<h2>Pokopia 圖示產生器</h2>
+<p>點擊下方按鈕，自動下載 icon-192.png 和 icon-512.png，<br>
+   將它們放入 <code>icons/</code> 資料夾即可。</p>
+
+<div class="row">
+  <div class="icon-box">
+    <canvas id="c192" width="192" height="192"></canvas>
+    <span>192 × 192</span>
+  </div>
+  <div class="icon-box">
+    <canvas id="c512" width="512" height="512"></canvas>
+    <span>512 × 512</span>
+  </div>
+</div>
+
+<button onclick="downloadAll()">下載全部圖示</button>
+
+<script>
+function drawPokeball(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  const r = s / 2;
+  const cx = r, cy = r;
+
+  // Background circle (dark)
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Red top half
+  ctx.fillStyle = '#e63946';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.82, Math.PI, 0);
+  ctx.fill();
+
+  // White bottom half
+  ctx.fillStyle = '#f0f0f0';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.82, 0, Math.PI);
+  ctx.fill();
+
+  // Center divider line
+  const lw = r * 0.06;
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.82, cy);
+  ctx.lineTo(cx + r * 0.82, cy);
+  ctx.stroke();
+
+  // Outer ring of center button
+  ctx.fillStyle = '#1a1a2e';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Inner white of center button
+  ctx.fillStyle = '#f0f0f0';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.13, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function download(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function downloadAll() {
+  download(document.getElementById('c192'), 'icon-192.png');
+  setTimeout(() => download(document.getElementById('c512'), 'icon-512.png'), 300);
+}
+
+// Draw on load
+drawPokeball(document.getElementById('c192'));
+drawPokeball(document.getElementById('c512'));
+</script>
+</body>
+</html>

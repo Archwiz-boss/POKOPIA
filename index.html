@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- PWA / Apple Web App -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pokopia">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#e63946">
+
+  <title>Pokopia 寶可夢圖鑑</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── App Header ──────────────────────────────────────────── -->
+  <header id="app-header">
+    <div class="header-logo">
+      <!-- Inline SVG Pokeball -->
+      <svg class="pokeball" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="14" cy="14" r="13" fill="#e63946" stroke="#1a1a2e" stroke-width="1.5"/>
+        <path d="M1 14 Q1 27 14 27 Q27 27 27 14Z" fill="white"/>
+        <line x1="1" y1="14" x2="27" y2="14" stroke="#1a1a2e" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="4" fill="#1a1a2e"/>
+        <circle cx="14" cy="14" r="2.5" fill="white"/>
+      </svg>
+      <h1>Pok<span>o</span>pia</h1>
+    </div>
+    <div id="catch-progress">0 / 1025</div>
+  </header>
+
+  <!-- ── Filter Bar ───────────────────────────────────────────── -->
+  <div id="filter-bar">
+    <input
+      type="search"
+      id="search-input"
+      placeholder="搜尋寶可夢名稱或編號..."
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
+    >
+    <div class="filter-chips">
+      <select id="gen-filter">
+        <option value="all">全世代</option>
+        <option value="1">第一世代 (關都)</option>
+        <option value="2">第二世代 (城都)</option>
+        <option value="3">第三世代 (豐緣)</option>
+        <option value="4">第四世代 (神奧)</option>
+        <option value="5">第五世代 (合衆)</option>
+        <option value="6">第六世代 (卡洛斯)</option>
+        <option value="7">第七世代 (阿羅拉)</option>
+        <option value="8">第八世代 (伽勒爾)</option>
+        <option value="9">第九世代 (帕底亞)</option>
+      </select>
+
+      <select id="type-filter">
+        <option value="all">全屬性</option>
+        <option value="normal">一般</option>
+        <option value="fire">火</option>
+        <option value="water">水</option>
+        <option value="electric">電</option>
+        <option value="grass">草</option>
+        <option value="ice">冰</option>
+        <option value="fighting">格鬥</option>
+        <option value="poison">毒</option>
+        <option value="ground">地面</option>
+        <option value="flying">飛行</option>
+        <option value="psychic">超能力</option>
+        <option value="bug">蟲</option>
+        <option value="rock">岩石</option>
+        <option value="ghost">幽靈</option>
+        <option value="dragon">龍</option>
+        <option value="dark">惡</option>
+        <option value="steel">鋼</option>
+        <option value="fairy">妖精</option>
+      </select>
+
+      <div>
+        <select id="status-filter">
+          <option value="all">全部狀態</option>
+          <option value="caught">已捕獲</option>
+          <option value="seen">已見</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Content ─────────────────────────────────────────── -->
+  <main id="main-content">
+
+    <!-- Loading -->
+    <div id="loading-state">
+      <div class="pokeball-spinner"></div>
+      <p>載入寶可夢圖鑑中...</p>
+    </div>
+
+    <!-- Pokemon Grid -->
+    <div id="pokemon-grid" class="hidden"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="hidden">
+      <div class="big">🔍</div>
+      <p>找不到符合條件的寶可夢</p>
+    </div>
+
+    <!-- Load More -->
+    <button id="load-more" class="hidden">載入更多</button>
+
+  </main>
+
+  <!-- ── Pokemon Detail Modal ─────────────────────────────────── -->
+  <div id="detail-modal" class="hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <button id="modal-close-btn" style="
+        position:absolute; top:14px; right:16px;
+        background:none; border:none; color:var(--text-muted);
+        font-size:24px; cursor:pointer; z-index:2; line-height:1;
+        padding:4px 8px;"
+        aria-label="關閉">×</button>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ── Bottom Navigation ─────────────────────────────────────── -->
+  <nav id="bottom-nav">
+    <button class="nav-btn active" data-view="pokedex">
+      <span class="nav-icon">📖</span>
+      <span>圖鑑</span>
+    </button>
+    <button class="nav-btn" data-view="collection">
+      <span class="nav-icon">⭐</span>
+      <span>我的收藏</span>
+    </button>
+  </nav>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+  <script src="db.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
