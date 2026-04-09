@@ -27,26 +27,26 @@
       </svg>
       <h1>Pok<span>o</span>pia</h1>
     </div>
-    <div id="catch-progress">0 / 1025</div>
+    <div id="catch-progress">0 / —</div>
   </header>
 
-  <!-- ── Filter Bar (Pokedex / Collection only) ───────────────── -->
+  <!-- ── Filter Bar ───────────────────────────────────────────── -->
   <div id="filter-bar">
     <input type="search" id="search-input"
-      placeholder="搜尋寶可夢名稱、中文或編號..."
+      placeholder="搜尋寶可夢中文名稱或編號..."
       autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="filter-chips">
       <select id="gen-filter">
         <option value="all">全世代</option>
-        <option value="1">第一世代 (關都)</option>
-        <option value="2">第二世代 (城都)</option>
-        <option value="3">第三世代 (豐緣)</option>
-        <option value="4">第四世代 (神奧)</option>
-        <option value="5">第五世代 (合衆)</option>
-        <option value="6">第六世代 (卡洛斯)</option>
-        <option value="7">第七世代 (阿羅拉)</option>
-        <option value="8">第八世代 (伽勒爾)</option>
-        <option value="9">第九世代 (帕底亞)</option>
+        <option value="1">第一世代</option>
+        <option value="2">第二世代</option>
+        <option value="3">第三世代</option>
+        <option value="4">第四世代</option>
+        <option value="5">第五世代</option>
+        <option value="6">第六世代</option>
+        <option value="7">第七世代</option>
+        <option value="8">第八世代</option>
+        <option value="9">第九世代</option>
       </select>
       <select id="type-filter">
         <option value="all">全屬性</option>
@@ -79,7 +79,7 @@
     </div>
   </div>
 
-  <!-- ── Main Content (Pokedex / Collection) ──────────────────── -->
+  <!-- ── Main Content ─────────────────────────────────────────── -->
   <main id="main-content">
     <div id="loading-state">
       <div class="pokeball-spinner"></div>
@@ -97,10 +97,21 @@
   <section id="habitats-section" class="hidden">
     <div id="hab-search-wrap">
       <input type="search" id="hab-search"
-        placeholder="搜尋棲息地名稱、材料或寶可夢..."
+        placeholder="搜尋棲息地、材料或寶可夢..."
         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </div>
     <div id="habitats-grid"></div>
+  </section>
+
+  <!-- ── Furniture Section ─────────────────────────────────────── -->
+  <section id="furniture-section" class="hidden">
+    <div class="section-search-wrap">
+      <input type="search" id="furniture-search"
+        placeholder="搜尋道具名稱或分類..."
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div id="furniture-cats" class="cat-chips-wrap"></div>
+    <div id="furniture-grid" class="furniture-grid"></div>
   </section>
 
   <!-- ── Pokemon Detail Modal ─────────────────────────────────── -->
@@ -108,7 +119,11 @@
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <button id="modal-close-btn" class="modal-close-btn" aria-label="關閉">×</button>
+      <button id="modal-close-btn" class="modal-close-btn" aria-label="關閉">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
       <div id="detail-content"></div>
     </div>
   </div>
@@ -118,7 +133,11 @@
     <div class="items-popup-backdrop"></div>
     <div class="items-popup-sheet">
       <div class="modal-handle"></div>
-      <button id="items-popup-close" class="modal-close-btn" aria-label="關閉">×</button>
+      <button id="items-popup-close" class="modal-close-btn" aria-label="關閉">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </button>
       <div class="items-popup-header">
         <div id="items-popup-title" class="items-popup-title"></div>
       </div>
@@ -134,11 +153,15 @@
     </button>
     <button class="nav-btn" data-view="collection">
       <span class="nav-icon">⭐</span>
-      <span>我的收藏</span>
+      <span>收藏</span>
     </button>
     <button class="nav-btn" data-view="habitats">
       <span class="nav-icon">🏕️</span>
       <span>棲息地</span>
+    </button>
+    <button class="nav-btn" data-view="furniture">
+      <span class="nav-icon">📦</span>
+      <span>道具</span>
     </button>
   </nav>
 

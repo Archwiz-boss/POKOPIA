@@ -9,16 +9,14 @@ const ARTWORK_BASE     = 'https://raw.githubusercontent.com/PokeAPI/sprites/mast
 const SPRITE_BASE      = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 const POKOPIA_GUIDE    = 'https://hanchoonie.github.io/pokopia_guide';
 const ZH_NAMES_URL     = 'https://raw.githubusercontent.com/sindresorhus/pokemon/main/data/zh-hant.json';
-const TOTAL_POKEMON    = 1025;
+const TOTAL_NATIONAL   = 1025;
 const PAGE_SIZE        = 48;
 
-// ── Habitat environment colours (Chinese names from hanchoonie data) ─────────
 const HABITAT_COLORS = {
   '明亮': '#f5c842', '清涼': '#5ba3f5', '黑暗': '#9b7fd4',
   '乾燥': '#e8874a', '潮濕': '#4ecdc4', '溫暖': '#ff7043',
 };
 
-// ── Type / Stat constants ──────────────────────────────────────────────────────
 const TYPE_NAMES_ZH = {
   normal:'一般', fire:'火', water:'水', electric:'電', grass:'草', ice:'冰',
   fighting:'格鬥', poison:'毒', ground:'地面', flying:'飛行', psychic:'超能力',
@@ -54,18 +52,22 @@ function capitalize(s)  { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
 // ============================================================
 
 const state = {
-  allPokemon:       [],
-  filtered:         [],
-  collection:       {},
-  zhNames:          [],   // [null, '妙蛙種子', ...] — index 0 = national ID 1
-  pokopiaPokemons:  {},   // { Chinese name → pokopia data }
-  pokopiaItems:     [],   // POKEMON_FAVORITE_THINGS
-  pokopiaHabitats:  [],   // HABITATS
-  currentView:      'pokedex',
+  allPokemon:        [],
+  filtered:          [],
+  collection:        {},
+  zhNames:           [],
+  pokopiaPokemons:   {},   // Chinese name → pokopia data
+  pokopiaNames:      new Set(), // Chinese names that appear in Pokopia
+  pokopiaTotal:      0,
+  pokopiaItems:      [],
+  pokopiaHabitats:   [],
+  currentView:       'pokedex',
   filters: { search: '', type: 'all', gen: 'all', status: 'all' },
-  page:             0,
-  typeIdCache:      {},
-  habSearchQuery:   '',
+  page:              0,
+  typeIdCache:       {},
+  habSearchQuery:    '',
+  furnitureCategory: 'all',
+  furnitureSearch:   '',
 };
 
 // ============================================================
@@ -90,22 +92,18 @@ async function loadZhNames() {
   const cached = await DB.getCacheEntry('zhNames');
   if (cached) { state.zhNames = cached; return; }
   try {
-    const res = await fetch(ZH_NAMES_URL);
-    const arr = await res.json();
+    const arr = await fetch(ZH_NAMES_URL).then(r => r.json());
     state.zhNames = arr;
     await DB.setCacheEntry('zhNames', arr);
   } catch (_) {}
 }
 
 async function loadHancoonieData() {
-  // Try IndexedDB cache first
   const cached = await DB.getCacheEntry('pokopiaData_v3');
   if (cached) {
     buildPokopiaLookup(cached.pokemons, cached.habitats, cached.items);
     return;
   }
-
-  // Load external scripts (only if not already loaded this session)
   try {
     if (typeof POKEMONS === 'undefined') {
       await loadScript(`${POKOPIA_GUIDE}/js/shared/data.js`);
@@ -113,13 +111,11 @@ async function loadHancoonieData() {
     if (typeof POKEMON_FAVORITE_THINGS === 'undefined') {
       await loadScript(`${POKOPIA_GUIDE}/js/shared/favorite_things_data.js`);
     }
-  } catch (_) {
-    return; // Offline or unavailable — non-fatal
-  }
+  } catch (_) { return; }
 
   /* global POKEMONS, HABITATS, POKEMON_FAVORITE_THINGS */
-  const pokemons = typeof POKEMONS               !== 'undefined' ? POKEMONS               : [];
-  const habitats = typeof HABITATS               !== 'undefined' ? HABITATS               : [];
+  const pokemons = typeof POKEMONS                !== 'undefined' ? POKEMONS                : [];
+  const habitats = typeof HABITATS                !== 'undefined' ? HABITATS                : [];
   const items    = typeof POKEMON_FAVORITE_THINGS !== 'undefined' ? POKEMON_FAVORITE_THINGS : [];
 
   if (pokemons.length && habitats.length && items.length) {
@@ -132,18 +128,25 @@ function buildPokopiaLookup(pokemons, habitats, items) {
   state.pokopiaHabitats = habitats;
   state.pokopiaItems    = items;
   state.pokopiaPokemons = {};
+  state.pokopiaNames    = new Set();
+
   for (const p of pokemons) {
     state.pokopiaPokemons[p.name] = p;
+    state.pokopiaNames.add(p.name);
   }
+  state.pokopiaTotal = pokemons.length;
+
+  // Update progress badge now that we know the total
+  updateProgressBadge();
 }
 
 async function loadPokemonList() {
   if (await DB.hasPokemonList()) return DB.getPokemonList();
-  const data = await fetch(`${POKEAPI}/pokemon?limit=${TOTAL_POKEMON}&offset=0`).then(r => r.json());
+  const data = await fetch(`${POKEAPI}/pokemon?limit=${TOTAL_NATIONAL}&offset=0`).then(r => r.json());
   const list = data.results.map(p => {
     const parts = p.url.split('/').filter(Boolean);
     return { id: parseInt(parts[parts.length - 1], 10), name: p.name };
-  }).filter(p => p.id <= TOTAL_POKEMON);
+  }).filter(p => p.id <= TOTAL_NATIONAL);
   await DB.savePokemonList(list);
   return list;
 }
@@ -151,7 +154,6 @@ async function loadPokemonList() {
 async function loadPokemonDetails(id) {
   const cached = await DB.getPokemonDetails(id);
   if (cached) return cached;
-
   const [pokemon, species] = await Promise.all([
     fetch(`${POKEAPI}/pokemon/${id}`).then(r => r.json()),
     fetch(`${POKEAPI}/pokemon-species/${id}`).then(r => r.json()).catch(() => null),
@@ -160,7 +162,6 @@ async function loadPokemonDetails(id) {
     ? (species.names.find(n => n.language.name === 'zh-Hant') ||
        species.names.find(n => n.language.name === 'zh-Hans'))?.name || null
     : null;
-
   const details = {
     id, name: pokemon.name, nameZh,
     types:     pokemon.types.map(t => t.type.name),
@@ -185,7 +186,7 @@ async function loadTypeIds(typeName) {
     const data = await fetch(`${POKEAPI}/type/${typeName}`).then(r => r.json());
     ids = data.pokemon
       .map(p => { const parts = p.pokemon.url.split('/').filter(Boolean); return parseInt(parts[parts.length - 1], 10); })
-      .filter(id => id <= TOTAL_POKEMON);
+      .filter(id => id <= TOTAL_NATIONAL);
     await DB.saveTypeCache(typeName, ids);
   }
   state.typeIdCache[typeName] = new Set(ids);
@@ -214,6 +215,11 @@ async function applyFilters() {
   const { search, type, gen, status } = state.filters;
   let list = state.allPokemon;
 
+  // ── Pokopia-only filter (always on) ───────────────────────
+  if (state.pokopiaNames.size > 0) {
+    list = list.filter(p => state.pokopiaNames.has(state.zhNames[p.id - 1] || ''));
+  }
+
   if (gen !== 'all') {
     const [lo, hi] = GEN_RANGES[parseInt(gen, 10) - 1];
     list = list.filter(p => p.id >= lo && p.id <= hi);
@@ -237,7 +243,7 @@ async function applyFilters() {
     list = list.filter(p => {
       const zh = state.zhNames[p.id - 1] || '';
       return p.name.includes(q) || String(p.id).includes(q) ||
-             String(p.id).padStart(4,'0').includes(q) || zh.includes(q);
+             String(p.id).padStart(4, '0').includes(q) || zh.includes(q);
     });
   }
   state.filtered = list;
@@ -250,8 +256,8 @@ async function applyFilters() {
 // ============================================================
 
 function renderGrid() {
-  const grid      = document.getElementById('pokemon-grid');
-  const loadMore  = document.getElementById('load-more');
+  const grid       = document.getElementById('pokemon-grid');
+  const loadMore   = document.getElementById('load-more');
   const emptyState = document.getElementById('empty-state');
 
   grid.innerHTML = '';
@@ -267,7 +273,7 @@ function renderGrid() {
 
   if (end < state.filtered.length) {
     loadMore.classList.remove('hidden');
-    loadMore.textContent = `載入更多 (還有 ${state.filtered.length - end} 隻)`;
+    loadMore.textContent = `Load more (${state.filtered.length - end} remaining)`;
   } else {
     loadMore.classList.add('hidden');
   }
@@ -356,7 +362,7 @@ async function openDetail(id) {
   const content = document.getElementById('detail-content');
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  content.innerHTML = `<div class="detail-loading"><div class="pokeball-spinner"></div><p>載入中...</p></div>`;
+  content.innerHTML = `<div class="detail-loading"><div class="pokeball-spinner"></div><p>Loading...</p></div>`;
 
   try {
     const details = await loadPokemonDetails(id);
@@ -376,8 +382,8 @@ async function openDetail(id) {
   } catch (_) {
     content.innerHTML = `
       <div class="detail-loading">
-        <p>載入失敗，請確認網路連線</p>
-        <button onclick="openDetail(${id})" style="margin-top:12px;padding:10px 20px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;">重試</button>
+        <p>Failed to load. Please check connection.</p>
+        <button onclick="openDetail(${id})" class="retry-btn">Retry</button>
       </div>`;
   }
 }
@@ -389,9 +395,7 @@ function renderDetailContent(details) {
   const primaryType = types[0] || 'normal';
   const bgColor     = TYPE_BG_COLORS[primaryType] || '#666';
   const displayZh   = nameZh || state.zhNames[id - 1] || '';
-
-  // Look up Pokopia game data by Chinese name
-  const pokeInfo = state.pokopiaPokemons[displayZh] || null;
+  const pokeInfo    = state.pokopiaPokemons[displayZh] || null;
 
   // ── Hero ────────────────────────────────────────────────────
   const heroHtml = `
@@ -406,7 +410,7 @@ function renderDetailContent(details) {
       </div>
     </div>`;
 
-  // ── Collect buttons ──────────────────────────────────────────
+  // ── Collect buttons ─────────────────────────────────────────
   const collectHtml = `
     <div class="collect-row">
       <button class="collect-btn ${status === 'caught' ? 'active-caught' : ''}" id="btn-caught" onclick="toggleCollection(${id},'caught')">
@@ -417,28 +421,20 @@ function renderDetailContent(details) {
       </button>
     </div>`;
 
-  // ── Pokopia section (if data available) ─────────────────────
+  // ── Pokopia section ─────────────────────────────────────────
   let pokopiaHtml = '';
   if (pokeInfo) {
     const envTags = (pokeInfo.favorite_environment || []).map(env => {
       const color = HABITAT_COLORS[env] || '#888';
       return `<span class="habitat-badge" style="background:${color}20;color:${color};border-color:${color}40">${env}</span>`;
     }).join('');
-
-    const skillTags = (pokeInfo.skills || []).map(s =>
-      `<span class="fav-tag skill-tag">${s}</span>`
-    ).join('');
-
-    const foodTags = (pokeInfo.favorite_food || []).map(f =>
-      `<span class="fav-tag">${f}</span>`
-    ).join('');
-
-    const thingBtns = (pokeInfo.favorite_things || []).map(t =>
+    const skillTags  = (pokeInfo.skills || []).map(s => `<span class="fav-tag skill-tag">${s}</span>`).join('');
+    const foodTags   = (pokeInfo.favorite_food || []).filter(f => f && f !== '--').map(f => `<span class="fav-tag">${f}</span>`).join('');
+    const thingBtns  = (pokeInfo.favorite_things || []).map(t =>
       `<button class="fav-tag fav-tag-clickable" onclick="showFavoriteItems('${t.replace(/'/g,"\\'")}')">
         ${t} <span class="fav-arrow">›</span>
       </button>`
     ).join('');
-
     const habLink = pokeInfo.habitat
       ? `<button class="pokopia-hab-link" onclick="jumpToHabitat('${pokeInfo.habitat.replace(/'/g,"\\'")}')">🏕️ ${pokeInfo.habitat}</button>`
       : '';
@@ -453,9 +449,7 @@ function renderDetailContent(details) {
         ${foodTags ? `<div class="pokopia-row"><span class="pokopia-label">喜愛食物</span><div class="fav-tags">${foodTags}</div></div>` : ''}
         ${thingBtns ? `
           <div class="pokopia-fav-wrap">
-            <div class="pokopia-label" style="margin-bottom:6px">
-              喜歡事物 <span style="color:var(--text-muted);font-size:10px;font-weight:400">點擊查看對應道具</span>
-            </div>
+            <div class="pokopia-label" style="margin-bottom:6px">喜歡事物 <span style="color:var(--text-muted);font-size:10px;font-weight:400">點擊查看對應道具</span></div>
             <div class="fav-tags">${thingBtns}</div>
           </div>` : ''}
       </div>`;
@@ -481,7 +475,7 @@ function renderDetailContent(details) {
     <div class="detail-section">
       <div class="detail-section-title">基礎能力值</div>
       ${stats.map(s => {
-        const pct = Math.min(100, Math.round(s.base/255*100));
+        const pct = Math.min(100, Math.round(s.base / 255 * 100));
         return `
           <div class="stat-row">
             <div class="stat-name">${STAT_NAMES[s.name] || s.name}</div>
@@ -516,7 +510,10 @@ function renderDetailContent(details) {
       const wrap = document.createElement('div');
       wrap.className = 'evo-chain';
       chain.forEach((evo, i) => {
-        if (i > 0) { const a = document.createElement('div'); a.className = 'evo-arrow'; a.textContent = '→'; wrap.appendChild(a); }
+        if (i > 0) {
+          const a = document.createElement('div');
+          a.className = 'evo-arrow'; a.textContent = '→'; wrap.appendChild(a);
+        }
         const el = document.createElement('div');
         el.className = 'evo-pokemon';
         const evoZh = state.zhNames[evo.id - 1] || '';
@@ -540,19 +537,18 @@ function closeDetail() {
 // ============================================================
 
 function showFavoriteItems(category) {
-  const popup   = document.getElementById('items-popup');
-  const title   = document.getElementById('items-popup-title');
-  const grid    = document.getElementById('items-popup-grid');
+  const popup = document.getElementById('items-popup');
+  const title = document.getElementById('items-popup-title');
+  const grid  = document.getElementById('items-popup-grid');
 
-  title.textContent = `「${category}」的道具`;
-
+  title.textContent = `「${category}」相關道具`;
   const matching = state.pokopiaItems.filter(item =>
     (item.categories || []).includes(category)
   );
 
   grid.innerHTML = '';
   if (matching.length === 0) {
-    grid.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:24px">找不到對應道具</p>`;
+    grid.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:24px;grid-column:1/-1">找不到對應道具</p>`;
   } else {
     for (const item of matching) {
       const card = document.createElement('div');
@@ -584,9 +580,7 @@ function parseMaterial(str) {
 function renderHabitatsPage(query) {
   const grid = document.getElementById('habitats-grid');
   if (!grid) return;
-
   const q = (query || '').trim().toLowerCase();
-
   const list = q
     ? state.pokopiaHabitats.filter(h =>
         h.name.toLowerCase().includes(q) ||
@@ -596,12 +590,10 @@ function renderHabitatsPage(query) {
     : state.pokopiaHabitats;
 
   grid.innerHTML = '';
-
   if (list.length === 0) {
     grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">找不到符合的棲息地</div>`;
     return;
   }
-
   for (const h of list) {
     const imgUrl  = `${POKOPIA_GUIDE}/${h.img}`;
     const matHtml = h.contents.map(c => {
@@ -609,9 +601,8 @@ function renderHabitatsPage(query) {
       return `<span class="mat-chip">${name}<span class="mat-qty">×${qty}</span></span>`;
     }).join('');
     const pokeHtml = h.pokemons.map(p => {
-      const stars = '★'.repeat(p.stars);
-      const cls   = p.stars === 3 ? 'rare' : p.stars === 2 ? 'uncommon' : '';
-      return `<span class="hab-poke-chip ${cls}">${p.name}<span class="hab-stars">${stars}</span></span>`;
+      const cls = p.stars === 3 ? 'rare' : p.stars === 2 ? 'uncommon' : '';
+      return `<span class="hab-poke-chip ${cls}">${p.name}<span class="hab-stars">${'★'.repeat(p.stars)}</span></span>`;
     }).join('');
 
     const card = document.createElement('div');
@@ -640,8 +631,79 @@ function jumpToHabitat(habitatName) {
     input.value = habitatName;
     state.habSearchQuery = habitatName;
     renderHabitatsPage(habitatName);
-    // Scroll to top of habitats section
     document.getElementById('habitats-section').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+// ============================================================
+// UI — FURNITURE PAGE
+// ============================================================
+
+function getAllFurnitureCategories() {
+  const cats = new Set();
+  for (const item of state.pokopiaItems) {
+    for (const cat of (item.categories || [])) cats.add(cat);
+  }
+  return ['全部', ...cats];
+}
+
+function buildFurnitureCategoryChips() {
+  const wrap = document.getElementById('furniture-cats');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (const cat of getAllFurnitureCategories()) {
+    const btn = document.createElement('button');
+    const isAll = cat === '全部';
+    const isActive = isAll ? state.furnitureCategory === 'all' : state.furnitureCategory === cat;
+    btn.className = `cat-chip${isActive ? ' active' : ''}`;
+    btn.textContent = cat;
+    btn.addEventListener('click', () => {
+      state.furnitureCategory = isAll ? 'all' : cat;
+      buildFurnitureCategoryChips();
+      renderFurniturePage();
+    });
+    wrap.appendChild(btn);
+  }
+}
+
+function renderFurniturePage() {
+  const grid = document.getElementById('furniture-grid');
+  if (!grid) return;
+
+  const q   = state.furnitureSearch.toLowerCase();
+  const cat = state.furnitureCategory;
+
+  let items = state.pokopiaItems;
+  if (cat !== 'all') {
+    items = items.filter(item => (item.categories || []).includes(cat));
+  }
+  if (q) {
+    items = items.filter(item =>
+      item.name.toLowerCase().includes(q) ||
+      (item.categories || []).some(c => c.toLowerCase().includes(q)) ||
+      (item.tags || []).some(t => t.toLowerCase().includes(q))
+    );
+  }
+
+  grid.innerHTML = '';
+  if (items.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">找不到符合的道具</div>`;
+    return;
+  }
+  for (const item of items) {
+    const card = document.createElement('div');
+    card.className = 'furniture-card';
+    const catTags = (item.categories || []).map(c =>
+      `<span class="fav-tag furniture-cat-tag">${c}</span>`
+    ).join('');
+    const typeTags = (item.tags || []).map(t =>
+      `<span class="fav-tag item-type-tag">${t}</span>`
+    ).join('');
+    card.innerHTML = `
+      <div class="furniture-name">${item.name}</div>
+      ${catTags ? `<div class="fav-tags" style="margin-top:5px">${catTags}</div>` : ''}
+      ${typeTags ? `<div class="fav-tags" style="margin-top:3px">${typeTags}</div>` : ''}`;
+    grid.appendChild(card);
   }
 }
 
@@ -676,8 +738,9 @@ async function toggleCollection(id, action) {
 
 function updateProgressBadge() {
   DB.getCollectionCounts().then(({ caught }) => {
+    const total = state.pokopiaTotal || TOTAL_NATIONAL;
     document.getElementById('catch-progress').innerHTML =
-      `<span class="caught">${caught}</span> / ${TOTAL_POKEMON}`;
+      `<span class="caught">${caught}</span> / ${total}`;
   });
 }
 
@@ -696,17 +759,29 @@ function switchView(view) {
     btn.classList.toggle('active', btn.dataset.view === view)
   );
 
-  const isHabitats = view === 'habitats';
-  document.getElementById('filter-bar').classList.toggle('hidden', isHabitats);
-  document.getElementById('main-content').classList.toggle('hidden', isHabitats);
+  const isHabitats  = view === 'habitats';
+  const isFurniture = view === 'furniture';
+  const isPokedex   = !isHabitats && !isFurniture;
+
+  document.getElementById('filter-bar').classList.toggle('hidden', !isPokedex);
+  document.getElementById('main-content').classList.toggle('hidden', !isPokedex);
   document.getElementById('habitats-section').classList.toggle('hidden', !isHabitats);
+  document.getElementById('furniture-section').classList.toggle('hidden', !isFurniture);
 
   if (isHabitats) {
     if (state.pokopiaHabitats.length === 0) {
       document.getElementById('habitats-grid').innerHTML =
-        `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">棲息地資料載入中，請確認網路連線</div>`;
+        `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">載入中，請確認網路連線</div>`;
     } else {
       renderHabitatsPage(state.habSearchQuery);
+    }
+  } else if (isFurniture) {
+    if (state.pokopiaItems.length === 0) {
+      document.getElementById('furniture-grid').innerHTML =
+        `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">載入中，請確認網路連線</div>`;
+    } else {
+      buildFurnitureCategoryChips();
+      renderFurniturePage();
     }
   } else {
     document.getElementById('status-filter').parentElement.style.display =
@@ -729,10 +804,7 @@ async function init() {
   try {
     state.collection = await DB.getCollection();
     updateProgressBadge();
-
-    // Load all external data in parallel
     await Promise.all([loadZhNames(), loadHancoonieData()]);
-
     state.allPokemon = await loadPokemonList();
     showMainLoading(false);
     await applyFilters();
@@ -749,8 +821,7 @@ async function init() {
 
   // ── Event listeners ───────────────────────────────────────────
   document.getElementById('search-input').addEventListener('input', e => {
-    state.filters.search = e.target.value.trim().toLowerCase();
-    applyFilters();
+    state.filters.search = e.target.value.trim().toLowerCase(); applyFilters();
   });
   document.getElementById('gen-filter').addEventListener('change', e => {
     state.filters.gen = e.target.value; applyFilters();
@@ -772,17 +843,23 @@ async function init() {
   });
   document.getElementById('modal-close-btn').addEventListener('click', closeDetail);
 
-  // Habitats search
-  document.getElementById('hab-search').addEventListener('input', e => {
-    state.habSearchQuery = e.target.value;
-    renderHabitatsPage(e.target.value);
-  });
-
   // Items popup
   document.getElementById('items-popup').addEventListener('click', e => {
     if (e.target.classList.contains('items-popup-backdrop')) closeFavoriteItems();
   });
   document.getElementById('items-popup-close').addEventListener('click', closeFavoriteItems);
+
+  // Habitats
+  document.getElementById('hab-search').addEventListener('input', e => {
+    state.habSearchQuery = e.target.value;
+    renderHabitatsPage(e.target.value);
+  });
+
+  // Furniture
+  document.getElementById('furniture-search').addEventListener('input', e => {
+    state.furnitureSearch = e.target.value.trim().toLowerCase();
+    renderFurniturePage();
+  });
 
   // Bottom nav
   document.querySelectorAll('.nav-btn').forEach(btn =>
