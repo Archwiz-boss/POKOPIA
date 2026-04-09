@@ -3,16 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-  <!-- PWA / Apple Web App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Pokopia">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#e63946">
-
   <title>Pokopia 寶可夢圖鑑</title>
-
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -22,7 +18,6 @@
   <!-- ── App Header ──────────────────────────────────────────── -->
   <header id="app-header">
     <div class="header-logo">
-      <!-- Inline SVG Pokeball -->
       <svg class="pokeball" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="14" cy="14" r="13" fill="#e63946" stroke="#1a1a2e" stroke-width="1.5"/>
         <path d="M1 14 Q1 27 14 27 Q27 27 27 14Z" fill="white"/>
@@ -35,17 +30,11 @@
     <div id="catch-progress">0 / 1025</div>
   </header>
 
-  <!-- ── Filter Bar ───────────────────────────────────────────── -->
+  <!-- ── Filter Bar (Pokedex / Collection only) ───────────────── -->
   <div id="filter-bar">
-    <input
-      type="search"
-      id="search-input"
-      placeholder="搜尋寶可夢名稱或編號..."
-      autocomplete="off"
-      autocorrect="off"
-      autocapitalize="off"
-      spellcheck="false"
-    >
+    <input type="search" id="search-input"
+      placeholder="搜尋寶可夢名稱、中文或編號..."
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     <div class="filter-chips">
       <select id="gen-filter">
         <option value="all">全世代</option>
@@ -59,7 +48,6 @@
         <option value="8">第八世代 (伽勒爾)</option>
         <option value="9">第九世代 (帕底亞)</option>
       </select>
-
       <select id="type-filter">
         <option value="all">全屬性</option>
         <option value="normal">一般</option>
@@ -81,7 +69,6 @@
         <option value="steel">鋼</option>
         <option value="fairy">妖精</option>
       </select>
-
       <div>
         <select id="status-filter">
           <option value="all">全部狀態</option>
@@ -92,41 +79,50 @@
     </div>
   </div>
 
-  <!-- ── Main Content ─────────────────────────────────────────── -->
+  <!-- ── Main Content (Pokedex / Collection) ──────────────────── -->
   <main id="main-content">
-
-    <!-- Loading -->
     <div id="loading-state">
       <div class="pokeball-spinner"></div>
       <p>載入寶可夢圖鑑中...</p>
     </div>
-
-    <!-- Pokemon Grid -->
     <div id="pokemon-grid" class="hidden"></div>
-
-    <!-- Empty State -->
     <div id="empty-state" class="hidden">
       <div class="big">🔍</div>
       <p>找不到符合條件的寶可夢</p>
     </div>
-
-    <!-- Load More -->
     <button id="load-more" class="hidden">載入更多</button>
-
   </main>
+
+  <!-- ── Habitats Section ──────────────────────────────────────── -->
+  <section id="habitats-section" class="hidden">
+    <div id="hab-search-wrap">
+      <input type="search" id="hab-search"
+        placeholder="搜尋棲息地名稱、材料或寶可夢..."
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <div id="habitats-grid"></div>
+  </section>
 
   <!-- ── Pokemon Detail Modal ─────────────────────────────────── -->
   <div id="detail-modal" class="hidden">
     <div class="modal-backdrop"></div>
     <div class="modal-sheet">
       <div class="modal-handle"></div>
-      <button id="modal-close-btn" style="
-        position:absolute; top:14px; right:16px;
-        background:none; border:none; color:var(--text-muted);
-        font-size:24px; cursor:pointer; z-index:2; line-height:1;
-        padding:4px 8px;"
-        aria-label="關閉">×</button>
+      <button id="modal-close-btn" class="modal-close-btn" aria-label="關閉">×</button>
       <div id="detail-content"></div>
+    </div>
+  </div>
+
+  <!-- ── Favourite Items Popup ─────────────────────────────────── -->
+  <div id="items-popup" class="hidden">
+    <div class="items-popup-backdrop"></div>
+    <div class="items-popup-sheet">
+      <div class="modal-handle"></div>
+      <button id="items-popup-close" class="modal-close-btn" aria-label="關閉">×</button>
+      <div class="items-popup-header">
+        <div id="items-popup-title" class="items-popup-title"></div>
+      </div>
+      <div id="items-popup-grid" class="items-popup-grid"></div>
     </div>
   </div>
 
@@ -140,12 +136,14 @@
       <span class="nav-icon">⭐</span>
       <span>我的收藏</span>
     </button>
+    <button class="nav-btn" data-view="habitats">
+      <span class="nav-icon">🏕️</span>
+      <span>棲息地</span>
+    </button>
   </nav>
 
-  <!-- Scripts -->
   <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
   <script src="db.js"></script>
   <script src="app.js"></script>
-
 </body>
 </html>

@@ -616,6 +616,301 @@ img { display: block; }
   font-size: 14px;
 }
 
+/* ── Habitats Section ─────────────────────────────────────────────────────── */
+#habitats-section {
+  padding: 0 0 calc(var(--nav-h) + var(--safe-b) + 12px);
+}
+
+#hab-search-wrap {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 99;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px 10px;
+}
+
+#hab-search {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 8px 12px 8px 36px;
+  font-size: 15px;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 10px center;
+}
+#hab-search::placeholder { color: var(--text-muted); }
+#hab-search:focus { border-color: var(--accent); }
+
+#habitats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+
+@media (min-width: 480px) {
+  #habitats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Habitat Card ──────────────────────────────────────────────────────────── */
+.hab-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hab-img-wrap {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: var(--surface2);
+  overflow: hidden;
+}
+
+.hab-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hab-img-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: var(--surface2);
+}
+
+.hab-num-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.activity-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+.hab-body {
+  padding: 8px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.hab-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.hab-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-top: 4px;
+}
+
+.hab-mats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.mat-chip {
+  font-size: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 5px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mat-qty {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.hab-pokes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.hab-poke-chip {
+  font-size: 10px;
+  background: rgba(63,185,80,0.1);
+  border: 1px solid rgba(63,185,80,0.2);
+  border-radius: 5px;
+  padding: 2px 5px;
+  color: var(--green);
+}
+
+.hab-poke-chip.uncommon {
+  background: rgba(210,153,34,0.1);
+  border-color: rgba(210,153,34,0.3);
+  color: var(--yellow);
+}
+
+.hab-poke-chip.rare {
+  background: rgba(230,57,70,0.1);
+  border-color: rgba(230,57,70,0.3);
+  color: var(--accent);
+}
+
+.hab-stars {
+  font-size: 8px;
+  margin-left: 2px;
+  opacity: 0.7;
+}
+
+/* ── Favourite Items Popup ─────────────────────────────────────────────────── */
+#items-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+}
+
+.items-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.items-popup-sheet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-height: 75dvh;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: calc(20px + var(--safe-b));
+}
+
+.items-popup-header {
+  padding: 4px 20px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.items-popup-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.items-popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+@media (min-width: 480px) {
+  .items-popup-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.items-popup-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.items-popup-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+/* ── Clickable favourite tags ─────────────────────────────────────────────── */
+.fav-tag-clickable {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--text);
+  font-size: 11px;
+  transition: border-color 0.12s, background 0.12s;
+}
+.fav-tag-clickable:active {
+  border-color: var(--accent);
+  background: rgba(230,57,70,0.1);
+}
+
+.fav-arrow {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.item-type-tag {
+  background: rgba(93,127,212,0.15);
+  border-color: rgba(93,127,212,0.3);
+  color: #89aae6;
+}
+
+.skill-tag {
+  background: rgba(63,185,80,0.12);
+  border-color: rgba(63,185,80,0.3);
+  color: var(--green);
+}
+
+/* ── Pokopia hab link button ──────────────────────────────────────────────── */
+.pokopia-hab-link {
+  background: rgba(78,205,196,0.1);
+  border: 1px solid rgba(78,205,196,0.3);
+  border-radius: 8px;
+  color: #4ecdc4;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pokopia-hab-link:active { background: rgba(78,205,196,0.2); }
+
 /* ── Bottom Nav ───────────────────────────────────────────────────────────── */
 #bottom-nav {
   position: fixed;
