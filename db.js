@@ -1,9 +1,10 @@
 // db.js — IndexedDB wrapper using Dexie.js
 // Tables:
-//   pokemonList    : { id, name }               — full list of all Pokemon
-//   pokemonDetails : { id, types, stats, ... }  — fetched detail data
-//   typeCache      : { typeName, pokemonIds[] }  — cached type → IDs mapping
-//   collection     : { id, status, updatedAt }  — user's caught/seen records
+//   pokemonList    : { id, name }
+//   pokemonDetails : { id, types, stats, ... }
+//   typeCache      : { typeName, pokemonIds[] }
+//   collection     : { id, status, updatedAt }
+//   appCache       : { key, data, cachedAt }  ← general-purpose cache
 
 const db = new Dexie('PokopiaDB');
 
@@ -12,6 +13,15 @@ db.version(1).stores({
   pokemonDetails: 'id',
   typeCache:      'typeName',
   collection:     'id, status',
+});
+
+// Version 2: add appCache table for zh names + Pokopia game data
+db.version(2).stores({
+  pokemonList:    'id, name',
+  pokemonDetails: 'id',
+  typeCache:      'typeName',
+  collection:     'id, status',
+  appCache:       'key',
 });
 
 const DB = {
@@ -78,5 +88,16 @@ const DB = {
       return (await db.collection.toArray()).map(e => e.id);
     }
     return db.collection.where('status').equals(status).primaryKeys();
+  },
+
+  // ── App Cache (zh names, Pokopia data) ───────────────────────────────────
+
+  async getCacheEntry(key) {
+    const entry = await db.appCache.get(key);
+    return entry ? entry.data : null;
+  },
+
+  async setCacheEntry(key, data) {
+    await db.appCache.put({ key, data, cachedAt: Date.now() });
   },
 };

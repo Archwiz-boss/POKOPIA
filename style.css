@@ -274,6 +274,16 @@ img { display: block; }
   filter: brightness(0) opacity(0.15);
 }
 
+/* Chinese name — main display in card */
+.poke-card .poke-name-zh {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* English name — primary when no zh, secondary otherwise */
 .poke-card .poke-name {
   font-size: 12px;
   font-weight: 600;
@@ -282,6 +292,11 @@ img { display: block; }
   text-transform: capitalize;
   line-height: 1.2;
   word-break: break-word;
+}
+.poke-card .poke-name.poke-name-secondary {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 
 .type-badges {
@@ -633,6 +648,69 @@ img { display: block; }
 }
 .nav-btn .nav-icon { font-size: 20px; }
 .nav-btn.active    { color: var(--accent); }
+
+/* ── Pokopia game section ─────────────────────────────────────────────────── */
+.pokopia-section {
+  background: linear-gradient(135deg, rgba(155,127,212,0.08), rgba(78,205,196,0.05));
+  border: 1px solid rgba(155,127,212,0.2);
+  border-radius: var(--radius);
+  margin: 0 20px 16px;
+  padding: 14px 16px;
+}
+.pokopia-section .detail-section-title {
+  margin-bottom: 10px;
+}
+
+.pokopia-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pokopia-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.pokopia-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.habitat-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+  letter-spacing: 0.3px;
+}
+
+.pokopia-fav-wrap {
+  margin-top: 4px;
+}
+
+.fav-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.fav-tag {
+  font-size: 11px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--text-muted);
+}
 
 /* ── Type badge colours ───────────────────────────────────────────────────── */
 .type-normal   { background: var(--t-normal);   }
